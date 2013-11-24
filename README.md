@@ -1,0 +1,4 @@
+oscilador
+=========
+
+Oscilador experimental
