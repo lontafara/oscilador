@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Oscilador</title>
+<link href="http://getbootstrap.com/dist/css/bootstrap.css" rel="stylesheet">
+<style>
+
+</style>
+</head>
+<div class="container">
+      <div class="header">
+        <ul class="nav nav-pills pull-right">
+        </ul>
+        <h3 class="text-muted">Oscilador simple</h3>
+      </div>
+
+    <div class="jumbotron">
+      	<canvas id="canvas"></canvas>
+	</div>
+	<div class="row marketing">
+      <div class="col-lg-6">        
+          <ul class="list-unstyled">      
+        <li style="padding-bottom:40px"><input id="osc" onclick="Boton(this)" type="button"  class="btn btn-info btn-lg"value="Reproducir" /></li>
+         <li><p><strong>Frecuencia:</strong>
+         <input id="freq" onchange="potenciometro(this)" type="range" min="60" max="8000" step="1" value="440" /> &nbsp;<span id="valorfreq">440</span> &nbsp;Hz</p></li>
+         <li><p><strong>Volumen:</strong>
+            <input id="volumen" onchange="potenciometro(this)" type="range" min="0" max="1" step="0.01" value="1" />&nbsp;x &nbsp;<span id="valorvol">1</span></p></li>
+        </ul>
+</div>
+
+<div class="col-lg-6"><h3>Oscilador simple</h3>  
+<ul class="list-unstyled">      
+        <li style="padding-bottom:40px">Creamos un array del tamaño del buffer: 512 muestras, la mitad del tamaño de nuestra resolución de la FFT (1024). Cada muestra se almacena en un Byte (256 niveles)</li>
+<li>El valor atual del máximo es:  &nbsp;<span id="maximo"></span></li>
+<li>El valor atual en decibelos es:  &nbsp;<span id="dB"></span> &nbsp;dB</li></ul>
+<li>Al aplicar el factor de ganancia de 0.5 obtenemos -6dB</li>
+</div>
+</div>
+
+<body>
+<script>
+var miFuente, misNodos = {}, espectro, max=0,imprimedBL,imprimedBR;
+var suena = false;	
+var contextoDeAudio = new (window.AudioContext||window.webkitAudioContext)();
+// variables de dibujo
+
+
+ function Boton(button) {
+            if(!suena) {
+                playOsc();
+                button.value = "Parar Sonido";
+                suena = true;
+            }
+            else {
+                misNodos.osc.stop(0);
+                button.value = "Reproducir";
+                suena = false;
+            }
+        }		
+
+
+
+
+function playOsc() {
+	    var FREQUENCIA = document.querySelector('#freq').value;
+        var ESCALA = document.querySelector('#volumen').value
+		
+		misNodos.osc = contextoDeAudio.createOscillator();
+        misNodos.osc.frequency.value = FREQUENCIA;
+        misNodos.ganancia = contextoDeAudio.createGain();
+        misNodos.ganancia.gain.value = ESCALA;
+		misNodos.analizador= contextoDeAudio.createAnalyser();				
+		misNodos.analizador.fftSize = 1024;
+		//conectar
+		
+		misNodos.osc.connect(misNodos.ganancia);
+		misNodos.ganancia.connect(misNodos.analizador);
+		misNodos.analizador.connect(contextoDeAudio.destination);
+		// Start immediately, and stop in 2 seconds.
+		misNodos.osc.start(0);
+            //espectro = setInterval(dibujaEspectro, 20); //llamamos a la función dibujarEspectro cada 20 ms
+       		// reproducir ahora (0 segundos desde ahora)
+	   requestAnimationFrame(visualizar.bind(this));
+	    }
+ 
+visualizar = function() {
+var canvas = document.querySelector('#canvas');
+var ctd = canvas.getContext('2d');
+canvas.width= 700;
+canvas.height= 256; 
+
+
+  var muestras = new Uint8Array(misNodos.analizador.frequencyBinCount);
+  misNodos.analizador.getByteTimeDomainData(muestras);
+  //console.log(
+  //muestras.length
+  
+  //)
+  
+  var max=0;
+  for(var i = 0; i < muestras.length; i++){
+			max = muestras[i] > max ? muestras[i] : max;
+		}
+	//console.log(
+      //"maximo:  "+max )		
+  for (var i = 0; i < muestras.length; i++) {
+    var valor = muestras[i];
+    var porcentaje = valor / 256;
+	
+    var alto = canvas.height * porcentaje;
+    var offset = canvas.height - alto;
+    var trazo = canvas.width/muestras.length;
+    ctd.fillStyle = 'black';
+    ctd.fillRect(i * trazo, offset, 1, 1);
+	ctd.moveTo(0, 128);
+	ctd.lineTo(700, 128);
+	ctd.stroke();
+  	ctd.fillText (128, 5, 128)
+	ctd.fillStyle = "rgb(25,255,0)";
+	dibujamaximo(ctd,max);
+	document.querySelector('#maximo').innerHTML = max;
+	dB=20*Math.log(max/256);
+	document.querySelector('#dB').innerHTML = dB;
+  }
+  requestAnimationFrame(visualizar.bind(this));
+};      
+
+function dibujamaximo(c,m){       
+c.beginPath();
+c.moveTo(0, m);
+c.lineTo(700, m);
+c.fillText (m, 5, m)
+c.stroke();
+	}
+
+function potenciometro(slider) {
+            if(contextoDeAudio.activeSourceCount > 0) {
+                if(slider.id == 'freq') {
+                    var FREQ = slider.value;
+                    misNodos.osc.frequency.value = FREQ;
+				document.querySelector('#valorfreq').innerHTML = FREQ;
+                }
+                else if(slider.id == 'volumen') {
+                    var volumen = slider.value;
+                    misNodos.ganancia.gain.value = volumen;
+					document.querySelector('#valorvol').innerHTML = volumen;
+                }
+            }
+        }
+
+
+
+
+
+</script>
+</body>
+</html>
