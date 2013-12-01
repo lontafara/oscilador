@@ -35,6 +35,7 @@
 <li>El valor atual del máximo es:  &nbsp;<span id="maximo"></span></li>
 <li>El valor atual en decibelos es:  &nbsp;<span id="dB"></span> &nbsp;dB</li></ul>
 <li>Al aplicar el factor de ganancia de 0.5 obtenemos -6dB</li>
+<li>20log<sub>10</sub>(0,5) =  &nbsp;<span id="dBs"></span> &nbsp;dB</li></ul>
 </div>
 </div>
 
@@ -103,7 +104,8 @@ canvas.height= 256;
 			max = muestras[i] > max ? muestras[i] : max;
 		}
 	//console.log(
-      //"maximo:  "+max )		
+      //"maximo:  "+max )
+	  max= max-128		
   for (var i = 0; i < muestras.length; i++) {
     var valor = muestras[i];
     var porcentaje = valor / 256;
@@ -120,17 +122,20 @@ canvas.height= 256;
 	ctd.fillStyle = "rgb(25,255,0)";
 	dibujamaximo(ctd,max);
 	document.querySelector('#maximo').innerHTML = max;
-	dB=20*Math.log(max/256);
+	dB=20*Math.log(Math.max((max/127), Math.pow(10,-42/20)))/Math.LN10;
 	document.querySelector('#dB').innerHTML = dB;
+	dBs=20*Math.log(0.5)/Math.LN10;
+	document.querySelector('#dBs').innerHTML = dBs;
   }
   requestAnimationFrame(visualizar.bind(this));
 };      
 
 function dibujamaximo(c,m){       
 c.beginPath();
-c.moveTo(0, m);
-c.lineTo(700, m);
-c.fillText (m, 5, m)
+c.moveTo(0, 128+m);
+c.lineTo(700, 128+m);
+var a= 128+m;
+c.fillText (m, 5, a);
 c.stroke();
 	}
 
